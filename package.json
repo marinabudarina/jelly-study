@@ -1,0 +1,16 @@
+{
+  "name": "jelly-study",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.26.1",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node tests/physics.test.js && node tests/softness.test.js && node tests/surface.test.js && node tests/picking.test.js && node tests/camera.test.js && node tests/deformation.test.js && node tests/stack.test.js"
+  },
+  "devDependencies": {
+    "vite": "7.3.6"
+  }
+}

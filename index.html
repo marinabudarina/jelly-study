@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f1f0eb">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&family=Outfit:wght@700&display=swap">
+  <title>Jelly Study — a gummy playground</title>
+  <meta name="description" content="An interactive 3D jelly playground. Stretch, slice, recolor, and stack gummy fruit.">
+  <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+  <header class="study-copy">
+    <h1 id="studyTitle">Jelly Study</h1>
+    <p id="studyCopy">A playful study of shape, stretch and motion. Pull a form, split it, and watch it settle back into itself.</p>
+  </header>
+  <div class="stage" id="stage">
+    <canvas id="gl" role="img" aria-label="Interactive 3D gummy candies. Drag a candy to stretch it, drag empty space to rotate, scroll or pinch to zoom, tap a candy to colour it, or choose Split and draw across a candy to cut it."></canvas>
+    <svg class="stroke" id="stroke" aria-hidden="true"><line id="strokeLine" x1="0" y1="0" x2="0" y2="0"/></svg>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="fallback" id="fallback" hidden>
+      <canvas id="offlinePreview" role="img" aria-label="Still CPU-rendered preview of the candies"></canvas>
+      <div class="fallback-notice" role="note">
+        <span class="fb-dot" aria-hidden="true"></span><b id="fallbackTitle">Still preview</b>
+        <span id="fallbackDetail">Stretching and slicing need WebGPU.</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="topbar" aria-label="Site">
+    <span class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i></span>soft<span class="slash">/</span>lab</span>
+    <span class="topbar-mid">a gummy playground</span>
+  </nav>
+  <div class="status" id="status" data-state="idle" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="statusText">STARTING</span></div>
+
+  <section class="masthead addbar" aria-label="Add a candy">
+    <div class="bar-label"><span>Add item</span><span class="count" id="candyCount" role="status" aria-live="polite"></span></div>
+    <div class="add-row" role="group" aria-label="Add a candy">
+      <button class="chipbtn" type="button" data-add="bear">Bear</button>
+      <button class="chipbtn" type="button" data-add="pear">Pear</button>
+      <button class="chipbtn" type="button" data-add="cucumber">Cucumber</button>
+      <button class="chipbtn" type="button" data-add="watermelon">Melon</button>
+      <button class="chipbtn" type="button" data-add="orange">Orange</button>
+    </div>
+  </section>
+
+  <div class="dock">
+    <p class="hint" id="hintText"><b>Hand</b>Grab a candy and pull.</p>
+    <div class="toolbar" role="toolbar" aria-label="Playground tools">
+      <div class="seg" role="group" aria-label="Tool">
+        <button class="tool" type="button" data-tool="hand" aria-pressed="true" data-testid="button-stretch" title="Hand (H)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 10V5.5a1.2 1.2 0 0 1 2.4 0V9m0-4.8V3.8a1.2 1.2 0 0 1 2.4 0V9m0-4.2a1.2 1.2 0 0 1 2.4 0V9.5m0-3a1.2 1.2 0 0 1 2.4 0V12c0 3.3-2.4 5.5-5.4 5.5-2.2 0-3.6-1-4.8-2.8L3.3 11.6a1.3 1.3 0 0 1 2-1.6L6 11"/></svg><span>Hand</span></button>
+        <button class="tool" type="button" data-tool="knife" aria-pressed="false" data-testid="button-slice" title="Split (K)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5v15" stroke-dasharray="2 2.2"/><path d="M7.5 5.5 4 10l3.5 4.5M12.5 5.5 16 10l-3.5 4.5"/></svg><span>Split</span></button>
+      </div>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="tbtn" id="stack" type="button" aria-pressed="false" title="Stack the current candies on a wooden toothpick">Stack</button>
+      <button class="tbtn" id="nudge" type="button" title="Shake (N)">Shake</button>
+      <button class="tbtn" id="reset" type="button" aria-label="Reset the scene" data-testid="button-reset" title="Reset (R)">Reset</button>
+      <span class="sep" aria-hidden="true"></span>
+      <div class="pop-wrap">
+        <button class="tbtn icon" type="button" data-pop="feel" aria-expanded="false" aria-controls="feelPop" title="Material">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 6h9M15 6h2M3 14h3M9 14h8"/><circle cx="13.5" cy="6" r="1.6"/><circle cx="7.5" cy="14" r="1.6"/></svg><span>Feel</span></button>
+        <div class="pop" id="feelPop" hidden>
+          <div class="slider">
+            <div class="row"><label class="label" for="firmness">Firmness</label><output id="firmnessOut" for="firmness">0.50</output></div>
+            <input type="range" id="firmness" min="0" max="100" step="1" value="50">
+          </div>
+          <div class="slider">
+            <div class="row"><label class="label" for="damping">Damping</label><output id="dampingOut" for="damping">0.40</output></div>
+            <input type="range" id="damping" min="0" max="100" step="1" value="40">
+          </div>
+        </div>
+      </div>
+      <div class="pop-wrap">
+        <button class="tbtn icon" type="button" data-pop="view" aria-expanded="false" aria-controls="viewPop" title="View and motion">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 10s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5z"/><circle cx="10" cy="10" r="2.2"/></svg><span>View</span></button>
+        <div class="pop" id="viewPop" hidden>
+          <div class="views" role="group" aria-label="Camera view preset">
+            <button class="view" type="button" data-view="front" aria-pressed="false" data-testid="button-view-front">Front</button>
+            <button class="view" type="button" data-view="quarter" aria-pressed="true" data-testid="button-view-quarter">3/4</button>
+            <button class="view" type="button" data-view="side" aria-pressed="false" data-testid="button-view-side">Side</button>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="slow"><span class="box" aria-hidden="true"></span>Slow motion</label>
+            <label class="check"><input type="checkbox" id="mesh"><span class="box" aria-hidden="true"></span>Mesh</label>
+          </div>
+          <button class="tbtn wide" id="pause" type="button" aria-pressed="false">Pause</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="candy-menu" id="candyMenu" role="dialog" aria-label="Selected candy" hidden>
+    <div class="cm-head"><span id="candyName">Candy</span><button class="cm-x" id="closeMenu" type="button" aria-label="Close">&times;</button></div>
+    <div class="swatches" id="swatches" role="radiogroup" aria-label="Colour"></div>
+    <div class="cm-actions">
+      <button class="tbtn" id="duplicateCandy" type="button">Duplicate</button>
+      <button class="tbtn danger" id="removeCandy" type="button">Remove</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
